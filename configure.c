@@ -1252,61 +1252,59 @@ count_chars(char *s, char c)
 void
 make_build_data(char *target)
 {
-        char *p;
-        char hostname[MAXSTRLEN];
+	char *p;
+	char hostname[MAXSTRLEN];
 	char progname[MAXSTRLEN];
-	char inbuf1[MAXSTRLEN];
-	char inbuf2[MAXSTRLEN];
-	char inbuf3[MAXSTRLEN];
-	FILE *fp1, *fp2, *fp3, *fp4;
+	char datebuf[MAXSTRLEN];
+	char idbuf[MAXSTRLEN];
+	char gccversionbuf[MAXSTRLEN];
+	FILE *fp_date, *fp_id, *fp_gcc, *build_data;
 
 	unlink("build_data.c");
 
-        fp1 = popen("date", "r");
-        fp2 = popen("id", "r");
-	fp3 = popen("gcc --version", "r");
+	fp_date = popen("date", "r");
+	fp_id = popen("id", "r");
+	fp_gcc = popen("gcc --version", "r");
 
-	if ((fp4 = fopen("build_data.c", "w")) == NULL) {
+	if ((build_data = fopen("build_data.c", "w")) == NULL) {
 		perror("build_data.c");
 		exit(1);
 	}
 
-        if (gethostname(hostname, MAXSTRLEN) != 0)
-                hostname[0] = '\0';
+	if (gethostname(hostname, MAXSTRLEN) != 0)
+		hostname[0] = '\0';
 
-        p = fgets(inbuf1, 79, fp1);
+	p = fgets(datebuf, 79, fp_date);
 
-        p = fgets(inbuf2, 79, fp2);
-        p = strstr(inbuf2, ")");
-        p++;
-        *p = '\0';
+	p = fgets(idbuf, 79, fp_id);
+	p = strstr(idbuf, ")");
+	p++;
+	*p = '\0';
 
-        p = fgets(inbuf3, 79, fp3);
+	p = fgets(gccversionbuf, 79, fp_gcc);
 
 	lower_case(target_data.program, progname);
 
-	fprintf(fp4, "char *build_command = \"%s\";\n", progname);
-        if (strlen(hostname))
-                fprintf(fp4, "char *build_data = \"%s by %s on %s\";\n",
-                        strip_linefeeds(inbuf1), inbuf2, hostname);
-        else
-                fprintf(fp4, "char *build_data = \"%s by %s\";\n", 
-			strip_linefeeds(inbuf1), inbuf2);
+	fprintf(build_data, "char *build_command = \"%s\";\n", progname);
+	if (strlen(hostname))
+		fprintf(build_data, "char *build_data = \"%s by %s on %s\";\n",
+			strip_linefeeds(datebuf), idbuf, hostname);
+	else
+		fprintf(build_data, "char *build_data = \"%s by %s\";\n",
+			strip_linefeeds(datebuf), idbuf);
 
-        bzero(inbuf1, MAXSTRLEN);
-	sprintf(inbuf1, "%s", target_data.release);
+	fprintf(build_data, "char *build_target = \"%s\";\n", target);
 
-	fprintf(fp4, "char *build_target = \"%s\";\n", target);
+	fprintf(build_data, "char *build_version = \"%s\";\n",
+		target_data.release);
 
-        fprintf(fp4, "char *build_version = \"%s\";\n", inbuf1);
+	fprintf(build_data, "char *compiler_version = \"%s\";\n",
+		strip_linefeeds(gccversionbuf));
 
-	fprintf(fp4, "char *compiler_version = \"%s\";\n", 
-		strip_linefeeds(inbuf3));
-
-        pclose(fp1);
-        pclose(fp2);
-        pclose(fp3);
-	fclose(fp4);
+	pclose(fp_date);
+	pclose(fp_id);
+	pclose(fp_gcc);
+	fclose(build_data);
 }
 
 void
