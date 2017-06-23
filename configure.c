@@ -56,6 +56,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <pwd.h>
 
 struct supported_gdb_version;
 void build_configure(struct supported_gdb_version *);
@@ -1252,7 +1253,7 @@ count_chars(char *s, char c)
 void
 make_build_data(char *target)
 {
-	char *p;
+	struct passwd *passwd;
 	char hostname[MAXSTRLEN];
 	char progname[MAXSTRLEN];
 	char datebuf[MAXSTRLEN];
@@ -1274,14 +1275,15 @@ make_build_data(char *target)
 	if (gethostname(hostname, MAXSTRLEN) != 0)
 		hostname[0] = '\0';
 
-	p = fgets(datebuf, 79, fp_date);
+	fgets(datebuf, 79, fp_date);
 
-	p = fgets(idbuf, 79, fp_id);
-	p = strstr(idbuf, ")");
-	p++;
-	*p = '\0';
+	passwd = getpwuid(getuid());
+	if (passwd)
+		sprintf(idbuf, "uid=%d(%s)", passwd->pw_uid, passwd->pw_name);
+	else
+		sprintf(idbuf, "uid=%d", getuid());
 
-	p = fgets(gccversionbuf, 79, fp_gcc);
+	fgets(gccversionbuf, 79, fp_gcc);
 
 	lower_case(target_data.program, progname);
 
